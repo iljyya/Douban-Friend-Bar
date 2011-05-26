@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<!--
+ * Copyright (c) 2010 The Chromium Authors. All rights reserved.  Use of this
+ * source code is governed by a BSD-style license that can be found in the
+ * LICENSE file.
+-->
+<html>
+  <head>
+      <script src="jquery.js">
+      </script>
+      <script src="douban-api-parser.js">
+      </script>
+      <script src="douban-api.js">
+      </script>
+  </head>
+  <body>
+    <script>
+      DOUBAN.apikey = '01d953479d6477de058bf9d6d82d679a';
+
+      function fetchAndApply(fetchFunc, params, parseFunc, applyFunc, next, force) {
+        if (force == undefined) force = true;
+
+        var process = function(data) {
+          var r = parseFunc(data);
+          var sig = null;
+
+          $.each(r.entries, function(i, e){
+            sig = applyFunc(e);
+            if (!force && sig == 'break')
+              return false;
+          });
+
+          endIndex = r.startIndex + r.entries.length;
+          if (endIndex <= r.totalResults && (force || sig !== 'break')) {
+            setTimeout('g_timeout()', 1000);
+            g_timeout = function() {
+              // load more
+              console.log('load more ' + endIndex);
+              params['startindex'] = endIndex;
+              // has to reset params.callback. DOUBAN api screw it up
+              params['callback'] = process;
+              fetchFunc(params);
+            }
+          } else {
+            next();
+          }
+        };
+        params.startindex = 1;
+        params.maxresults = 50;
+        params.callback = process;
+        fetchFunc(params);
+      }
+
+      function logPrintTitle(e) {
+        console.log(e.title);
+      }
+
+      function loadFriends(uid, applyFunc, next) {
+        var params = {uid:uid};
+        fetchAndApply(DOUBAN.getUserContacts, params, DOUBAN.parseContacts, applyFunc, next);
+      }
+
+      function loadOneFriendMovies(uid, applyFunc, next, force) {
+        var params = {uid: uid, cat:'movie', status:'watched', maxresults:50};
+        fetchAndApply(DOUBAN.getUserCollection, params, DOUBAN.parseMultiCollection,
+          applyFunc, next, force);
+      }
+
+      function createMovieFunc(uid) {
+        return function(e) {
+          //console.log(e.title);
+          var movieid = e.subject.nid;
+          var rating = null;
+          if (e.rating !== undefined) {
+            rating = e.rating.value;
+          }
+          var summary = null;
+          if (e.summary !== undefined) {
+            summary = e.summary;
+          }
+
+          var key = JSON.stringify({u:uid, m:movieid});
+          var value = JSON.stringify({r:rating, s:summary});
+
+          if (window.localStorage.getItem(key) !== null) {
+            return 'break';
+          }
+          window.localStorage.setItem(key, value);
+        }
+      }
+
+      function loadAllFriendMovies(uid, next) {
+        if (next == undefined)
+          next = $.noop;
+        var friends = [];
+
+        var eachFriendFunc = function(e) {
+          var friend = {};
+          friend.uid = e.uid;
+          friend.name = e.title;
+          friend.icon = e.link.icon;
+          friends.push(friend);
+        };
+
+        var afterLoadFriends = function() {
+          console.log(friends.length + ' friends fetched.');
+          window.localStorage[':friends'] = JSON.stringify(friends);
+
+          // Now for each friend gets movies
+          var lastFriendMovieCall = next;
+          // Chain asynchronous calls
+          $.each(friends, function(index, f) {
+            var eachMovieFunc = createMovieFunc(f.uid);
+            var y = lastFriendMovieCall;
+            var x = function() {
+              window.localStorage.setItem(':fin:' + f.uid, 1);
+              y();
+            }
+            var a = function() {
+              console.log('Now get movies for ' + f.name);
+              var finKey = ':fin:' + f.uid;
+              var force = false;
+              if (window.localStorage.getItem(finKey) == null) {
+                console.log('forced');
+                force = true;
+              }
+              window.localStorage.removeItem(finKey);
+              loadOneFriendMovies(f.uid, eachMovieFunc, x, force);
+            }
+            lastFriendMovieCall = a;
+          });
+
+          lastFriendMovieCall();
+        };
+
+        loadFriends(uid, eachFriendFunc, afterLoadFriends);
+      }
+
+      function loadSavedFriends() {
+        return saved_friends = JSON.parse(window.localStorage.getItem(':friends'));
+      }
+
+
+      /**
+       * Handles data sent via chrome.extension.sendRequest().
+       * @param request Object Data sent in the request.
+       * @param sender Object Origin of the request.
+       * @param callback Function The method to call when the request completes.
+       */
+      function onRequest(request, sender, callback) {
+        if (saved_friends == null) {
+          saved_friends = loadSavedFriends();
+          if (saved_friends == null) return;
+        }
+        var result = [];
+        console.log(request.path);
+        var steps = request.path.split('/');
+        steps.pop();
+        mid = steps.pop();
+        console.log(mid);
+
+        $.each(saved_friends, function(index, friend) {
+          var key = JSON.stringify({u:friend.uid, m:mid});
+          console.log(key);
+          var value = window.localStorage.getItem(key);
+          if (value !== null) {
+            console.log(value);
+            v = JSON.parse(value);
+            var f = {uid: friend.uid, icon: friend.icon, name:friend.name, rating:v.r, summary:v.s};
+            result.push(f);
+          }
+        });
+
+        callback(result);
+      };
+
+      saved_friends = loadSavedFriends();
+      loadAllFriendMovies('2555727', function(){saved_friends = loadSavedFriends();});
+
+      // Wire up the listener.
+      chrome.extension.onRequest.addListener(onRequest);
+
+      //$(loadTed);
+    </script>
+  </body>
+</html>

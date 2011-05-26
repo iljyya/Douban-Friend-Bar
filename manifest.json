@@ -1,0 +1,19 @@
+{
+  "name": "Douban Friend Movie Bar",
+  "version": "0.5.0",
+  "description": "Shows a bar on each movie page which friends have watched this movie, plus their ratings and reviews.",
+  "permissions": [
+    "http://api.douban.com/*"
+  ],
+  "icons": {
+    "48" : "sample-48.png",
+    "128" : "sample-128.png"
+  },
+  "background_page" : "background.html",
+  "content_scripts": [
+    {
+      "matches": ["http://movie.douban.com/subject/*"],
+      "js" : ["jquery.js", "contentscript.js"]
+    }
+  ]
+}
