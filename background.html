@@ -176,8 +176,38 @@
         callback(result);
       };
 
+      function loadSavedFriendMovies() {
+        saved_friends = loadSavedFriends();
+        // Now for each friend gets movies
+        var lastFriendMovieCall = $.noop;
+        // Chain asynchronous calls
+        $.each(saved_friends, function(index, f) {
+          var eachMovieFunc = createMovieFunc(f.uid);
+          var y = lastFriendMovieCall;
+          var x = function() {
+            window.localStorage.setItem(':fin:' + f.uid, 1);
+            y();
+          }
+          var a = function() {
+            console.log('Now get movies for ' + f.name);
+            var finKey = ':fin:' + f.uid;
+            var force = false;
+            if (window.localStorage.getItem(finKey) == null) {
+              console.log('forced');
+              force = true;
+            }
+            window.localStorage.removeItem(finKey);
+            loadOneFriendMovies(f.uid, eachMovieFunc, x, force);
+          }
+          lastFriendMovieCall = a;
+        });
+
+        lastFriendMovieCall();
+      };
+
       saved_friends = loadSavedFriends();
-      loadAllFriendMovies(function(){saved_friends = loadSavedFriends();});
+      //loadAllFriendMovies(function(){saved_friends = loadSavedFriends();});
+      loadSavedFriendMovies();
 
       // Wire up the listener.
       chrome.extension.onRequest.addListener(onRequest);

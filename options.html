@@ -35,7 +35,7 @@
       .frienditem
       {
         float: left;
-        width: 150px;
+        width: 250px;
       }
       #stopfriends
       {
@@ -45,15 +45,29 @@
   </head>
 <script type="text/javascript">
 
+var friends = {};
+
 // Saves options to localStorage.
 function save_options() {
   var select = $("#color")[0];
-  var color = select.children[select.selectedIndex].value;
   var username = $('#username')[0].value;
   var apikey = $('#apikey')[0].value;
 
-  localStorage.clear();
-  localStorage['favorite_color'] = color;
+  var selected_friends = [];
+  var checks = $('input[name="friendcheck"]:checked');
+  console.log('Checked ' + checks.length + ' contacts');
+
+  $.each(checks, function(k, v) {
+    var friend = {};
+    e = friends[v.value];
+    friend.uid = e.uid;
+    friend.name = e.title;
+    friend.icon = e.link.icon;
+    selected_friends.push(friend);
+  });
+
+  //localStorage.clear();
+  localStorage[':friends'] = JSON.stringify(selected_friends);
   localStorage[':username'] = username;
   localStorage[':apikey'] = apikey;
   chrome.extension.getBackgroundPage().location.reload();
@@ -63,22 +77,11 @@ function save_options() {
   status.innerHTML = "Options Saved.";
   setTimeout(function() {
     status.innerHTML = "";
-  }, 750);
+  }, 2000);
 }
 
 // Restores select box state to saved value from localStorage.
 function restore_options() {
-  var favorite = localStorage["favorite_color"];
-  if (favorite) {
-    var select = $("#color")[0];
-    for (var i = 0; i < select.children.length; i++) {
-      var child = select.children[i];
-      if (child.value == favorite) {
-        child.selected = "true";
-        break;
-      }
-    }
-  }
   $('#username')[0].value = localStorage.getItem(':username');
   $('#apikey')[0].value = localStorage.getItem(':apikey');
 }
@@ -86,19 +89,34 @@ function restore_options() {
 $(function() {
     console.log('run');
     $('#loadButton').click(function() {
+      friends = {};
+
       var uid = $('#username')[0].value;
-      var friends = $('#friendsdiv').empty();
+      var friendsdiv = $('#friendsdiv').empty();
+
+      var lastSaved = JSON.parse(localStorage.getItem(':friends')) || [];
+      var lastSavedFriends = {};
+      $.each(lastSaved, function(k,v) {
+        lastSavedFriends[v.uid] = 1;
+      });
+
       var apply = function(e) {
+        friends[e.uid] = e;
+
         var icon = '<a href="http://www.douban.com/people/'+ e.uid + 
-          '"><img src="' + e.link.icon + '"></img></a>';
-        var name = '<span>' + e.title + '</span>';
-        friends.append($('<div/>').addClass('friendItem').append(icon).append(name));
+          '" target="_blank"><img src="' + e.link.icon + '"></img></a>';
+
+        var checked = (e.uid in lastSavedFriends) ? 'checked' : '';
+        var checkbox = '<input type="checkbox" name="friendcheck" ' + checked + 
+          ' value="' + e.uid + '">' + e.title + '</input>'
+
+        friendsdiv.append($('<div/>').addClass('friendItem').append(icon).append(checkbox));
       };
       // show modal
       $('#friendsmodal').show();
       $('#friendsspinner').show();
       var afterFetch = function() {
-        friends.append($('<p id="stopfriends"/>'));
+        friendsdiv.append($('<p id="stopfriends"/>'));
         $('#friendsmodal').hide();
         $('#friendsspinner').hide();
       }
@@ -124,16 +142,9 @@ $(function() {
   <div id="friendsdiv">
   </div>
 
-  Favorite Color:
-  <select id="color">
-    <option value="red">red</option>
-    <option value="green">green</option>
-    <option value="blue">blue</option>
-    <option value="yellow">yellow</option>
-  </select>
-
-  <br>
+  <p>
   <button onclick="save_options()">Save</button>
+  </p>
   <div id="status"/>
   </body>
 </html>
