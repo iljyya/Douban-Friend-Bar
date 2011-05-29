@@ -223,7 +223,7 @@
       // Check if first time after install
       if (!localStorage.getItem(':installed')) {
         localStorage.setItem(':installed', 1);
-        chrome.tabs.create({url: 'options.html'});
+        window.open('options.html');
       }
 
       //$(loadTed);
