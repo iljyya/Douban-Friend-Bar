@@ -10,24 +10,9 @@
  */
 function onText(data) {
     if (data === null) return;
-  // Only render the bar if the data is parsed into a format we recognize.
-    var trend_names = [];
-    for(var i in data) {
-      var x = data[i];
-      var text = '<a href="http://www.douban.com/people/' + x.uid + '"><img src="' + 
-          x.icon + '"/></a>' + x.name; 
-      if (x.rating !== null)
-        text += ': ' + x.rating + ' stars';
-      if (x.summary !== null)
-        text += ' ' + x.summary;
-      trend_names.push(text);
-    };
-
+    // Only render the bar if the data is parsed into a format we recognize.
     // Create the overlay at the top of the page and fill it with data.
     var trends_dom = document.createElement('div');
-    var text_dom = trend_names.join(' ');
-    //trends_dom.appendChild(text_dom);
-    $(trends_dom).append(text_dom);
     trends_dom.style.background = '#F4F4EC';
     trends_dom.style.color = '#111';
     trends_dom.style.padding = '10px';
@@ -35,6 +20,47 @@ function onText(data) {
     trends_dom.style.zIndex = '123456';
     trends_dom.style.font = '12px Arial';
     trends_dom.style.textAlign = 'center';
+    trends_dom.style.overflow = 'hidden';
+
+    $.each(data, function(i, x){
+      var img = '<a href="http://www.douban.com/people/' + x.uid + '"><img src="' + 
+          x.icon + '"/></a>';
+      var imge = $(img);
+
+      var text = '<div>' + x.name + '<br/>';
+      var imgurl = chrome.extension.getURL('st.gif');
+      var eimgurl = chrome.extension.getURL('est.gif');
+      if (x.rating !== null) {
+        var i = 0;
+        for (i = 0; i < x.rating; i ++) {
+          text += '<img src="' + imgurl+ '"></img>';
+        }
+        for (i = 0; i < 5-x.rating; i ++) {
+          text += '<img src="' + eimgurl + '"></img>';
+        }
+      }
+      if (x.summary !== null)
+        text += ' ' + x.summary;
+      text += '</div>';
+      var texte = $(text);
+
+      imge.css('display', 'block').css('float', 'left');
+      texte.css('float', 'left').css('text-align', 'left');
+      texte.css('padding-left', '5px').css('padding-right', '10px').css('cursor', 'pointer');
+      texte.css('max-height', '48px').css('max-width', '150px').css('overflow', 'hidden');
+
+      var fblock = $('<div/>').append(imge).append(texte).css('float', 'left');
+
+      texte.click(function() {
+        if (texte.css('max-width') && texte.css('max-width') != '500px')
+          texte.css('max-width', '500px').css('overflow', 'auto');
+        else
+          texte.css('max-width', '150px').css('overflow', 'hidden');
+      });
+
+      $(trends_dom).append(fblock);
+    });
+
     document.body.insertBefore(trends_dom, document.body.firstChild);
 };
 

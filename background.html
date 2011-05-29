@@ -15,7 +15,10 @@
   </head>
   <body>
     <script>
-      DOUBAN.apikey = window.localStorage.getItem(':apikey');//'01d953479d6477de058bf9d6d82d679a';
+      function loadApikey()
+      {
+        DOUBAN.apikey = window.localStorage.getItem(':apikey');
+      }
 
       function fetchAndApply(fetchFunc, params, parseFunc, applyFunc, next, force) {
         if (force == undefined) force = true;
@@ -32,7 +35,7 @@
 
           endIndex = r.startIndex + r.entries.length;
           if (endIndex <= r.totalResults && (force || sig !== 'break')) {
-            setTimeout('g_timeout()', 1000);
+            setTimeout('g_timeout()', (DOUBAN.apikey?1000: 10000));
             g_timeout = function() {
               // load more
               console.log('load more ' + endIndex);
@@ -42,7 +45,10 @@
               fetchFunc(params);
             }
           } else {
-            next();
+            setTimeout('h_timeout()', (DOUBAN.apikey?1000: 10000));
+            h_timeout = function() {
+              next();
+            }
           }
         };
         params.startindex = 1;
@@ -178,6 +184,7 @@
 
       function loadSavedFriendMovies() {
         saved_friends = loadSavedFriends();
+        if (!saved_friends) return;
         // Now for each friend gets movies
         var lastFriendMovieCall = $.noop;
         // Chain asynchronous calls
@@ -207,10 +214,17 @@
 
       saved_friends = loadSavedFriends();
       //loadAllFriendMovies(function(){saved_friends = loadSavedFriends();});
+      loadApikey();
       loadSavedFriendMovies();
 
       // Wire up the listener.
       chrome.extension.onRequest.addListener(onRequest);
+      
+      // Check if first time after install
+      if (!localStorage.getItem(':installed')) {
+        localStorage.setItem(':installed', 1);
+        chrome.tabs.create({url: 'options.html'});
+      }
 
       //$(loadTed);
     </script>

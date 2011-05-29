@@ -1,6 +1,6 @@
 {
   "name": "Douban Friend Movie Bar",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "description": "Shows a bar on each movie page which friends have watched this movie, plus their ratings and reviews.",
   "permissions": [
     "http://api.douban.com/*"

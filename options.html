@@ -1,13 +1,38 @@
 <html>
   <head>
     <title>My Test Extension Options</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <script src="jquery.js">
     </script>
     <style type="text/css">
+      body {
+        margin: 20px;
+      }
+      h1
+      {
+        font-size: 18pt;
+      }
+      h2
+      {
+        color:#060;
+        font-size:14pt;
+      }
+      #loadCheck
+      {
+        display:none;
+        color:red;
+      }
       #friendsdiv
       {
+        display:none;
         border-style:dotted;
         border-width:2px;
+        padding: 10px;
+      }
+      #status
+      {
+        display:none;
+        font-weight:bold;
       }
       #friendsmodal
       {
@@ -35,11 +60,15 @@
       .frienditem
       {
         float: left;
-        width: 250px;
+        width: 200px;
       }
       #stopfriends
       {
         clear:both;
+      }
+      body
+      {
+        font-size:11pt;
       }
     </style>
   </head>
@@ -73,11 +102,7 @@ function save_options() {
   chrome.extension.getBackgroundPage().location.reload();
 
   // Update status to let user know options were saved.
-  var status = $("#status")[0];
-  status.innerHTML = "Options Saved.";
-  setTimeout(function() {
-    status.innerHTML = "";
-  }, 2000);
+  $("#status").show(100);
 }
 
 // Restores select box state to saved value from localStorage.
@@ -86,13 +111,78 @@ function restore_options() {
   $('#apikey')[0].value = localStorage.getItem(':apikey');
 }
 
+function checkKeyAndName()
+{
+  var username = $('#username')[0].value;
+  var apikey = $('#apikey')[0].value;
+  var url = 'http://api.douban.com/people/' + username + '/collection?cat=movie';
+  if (apikey)
+    url += '&apikey=' + apikey;
+  var success = null;
+  $.ajax({
+    url: url,
+    async: false,
+    error: function(a, b, c) {
+      if (a.status == 404)
+      success = '您的豆瓣域名不正确';
+      else if (a.status == 401)
+      success = '您的API KEY不正确';
+    }
+  });
+  console.log(success);
+  return success;
+}
+
+function updateStorageSize()
+{
+  $('#storageSize').html(localStorage.length);
+  setTimeout("updateStorageSize()", 3000);
+};
+
+
 $(function() {
     console.log('run');
+    $('#saveButton').attr('disabled', true).click(save_options);
+
+    $('#apikey').change(function() {
+      $('#saveButton').attr('disabled', true);
+    });
+
+    $('#username').change(function() {
+      $('#saveButton').attr('disabled', true);
+    });
+
+    $('#cancelButton').click(function() {
+      window.location.reload();
+    });
     $('#loadButton').click(function() {
+      // show modal
+      $('#friendsmodal').show();
+      $('#friendsspinner').show();
+      $('#loadCheck').hide();
+      $('#status').hide();
+      var friendsdiv = $('#friendsdiv').empty();
+
+      var checkResult = checkKeyAndName();
+      if (checkResult)
+      {
+        $('#friendsmodal').hide();
+        $('#friendsspinner').hide();
+
+        $('#loadCheck').html(checkResult).show();
+        return;
+      }
+
+      var apikey = $('#apikey')[0].value;
+      if (apikey)
+      {
+        localStorage[':apikey'] = apikey;
+        chrome.extension.getBackgroundPage().loadApikey();
+      }
+
       friends = {};
 
       var uid = $('#username')[0].value;
-      var friendsdiv = $('#friendsdiv').empty();
 
       var lastSaved = JSON.parse(localStorage.getItem(':friends')) || [];
       var lastSavedFriends = {};
@@ -106,35 +196,82 @@ $(function() {
         var icon = '<a href="http://www.douban.com/people/'+ e.uid + 
           '" target="_blank"><img src="' + e.link.icon + '"></img></a>';
 
+        var labelid = 'friendlabel' + e.uid;
+        var checkboxid = 'friendcheckbox' + e.uid;
+
+        var label = '<label for="' + labelid + '" id="' + labelid + '">' + e.title + '</label>';
+
         var checked = (e.uid in lastSavedFriends) ? 'checked' : '';
         var checkbox = '<input type="checkbox" name="friendcheck" ' + checked + 
-          ' value="' + e.uid + '">' + e.title + '</input>'
+          ' value="' + e.uid + '" id="' + checkboxid + '"></input>'
 
-        friendsdiv.append($('<div/>').addClass('friendItem').append(icon).append(checkbox));
+        var friend_block = $('<div/>').addClass('friendItem');
+        friend_block.append(icon).append(label).append(checkbox);
+        $('#friendsdiv').append(friend_block);
+
+        var checkboxe = $('#' + checkboxid)[0];
+        var labele = $('#' + labelid)[0];
+        // add events to friend checkbox and its label
+        $(labele).click(function() {
+          checkboxe.checked = !checkboxe.checked;
+        });
+
+        $(checkboxe).change(function() {
+        //  var weight = (checkboxe.checked)? 'bold' : 'normal';
+        //  //console.log(weight);
+        //  $(labele).css('font-weight', weight);
+          $('#saveButton').attr('disabled', false);
+        });
       };
-      // show modal
-      $('#friendsmodal').show();
-      $('#friendsspinner').show();
       var afterFetch = function() {
         friendsdiv.append($('<p id="stopfriends"/>'));
+        $('#friendsdiv').show(500);
         $('#friendsmodal').hide();
         $('#friendsspinner').hide();
+        $('#saveButton').attr('disabled', false);
       }
       chrome.extension.getBackgroundPage().loadFriends(uid, apply, afterFetch);
     });
 
+    $('#clearStorage').click(function() {
+      var apikey = localStorage.getItem(':apikey');
+      var username = localStorage.getItem(':username');
+
+      localStorage.clear();
+      localStorage[':apikey'] = apikey;
+      localStorage[':username'] = username;
+      localStorage[':installed'] = 1;
+      window.location.reload();
+      chrome.extension.getBackgroundPage().location.reload();
+    });
+
     restore_options();
+    updateStorageSize();
   });
 
 </script>
 
 <body>
   <div id="friendsmodal"></div>
-  <p>API Key: <input type="text" id="apikey" size="50"/></p>
+  <h1>豆瓣朋友电影栏：插件设置</h1>
+    <h2>第一步</h2>
   <p>
-    Douban ID: <input type="text" id="username" />
-    <button id="loadButton">Load Contacts</button>
+    <span class="prompt">API Key：</span>
+    <input type="text" id="apikey" size="50"/><br/>
+    向豆瓣网 <a href="http://www.douban.com/service/apikey/apply" target="_blank">申请</a>
+    API Key并在此使用以确保插件顺利运行<br/>
   </p>
+  <h2>第二步</h2>
+  <p>
+    <span class="prompt">我的豆瓣域名:</span>
+    <input type="text" id="username" /><br/>
+    注意：豆瓣域名或与“名号”不同，可能是数字，请登陆豆瓣后在
+    <a href="http://www.douban.com/accounts/" target="_blank">此页</a> 查看“我的域名”
+  </p>
+  <h2>第三部</h2>
+  选择电影栏显示的朋友：
+  <button id="loadButton">请点此</button>
+  <span id="loadCheck"></span>
   <div id="friendsspinner">
     <img src="spinner.gif"></img>
   </div>
@@ -142,10 +279,18 @@ $(function() {
   <div id="friendsdiv">
   </div>
 
+  <h2>第四步</h2>
+  选取在电影栏关注的朋友后，请保存：
   <p>
-  <button onclick="save_options()">Save</button>
+  <button id="saveButton">保存设置</button>
+  <button id="cancelButton">取消</button>
   </p>
-  <div id="status"/>
+  <div id="status">保存完毕。您选择的朋友信息将逐步被索引并出现在您浏览的豆瓣电影页面上方。</div>
+  <h2>工具</h2>
+  <p>本地保存朋友电影数量：<span id='storageSize'></span>
+  <button id="clearStorage">清空本地存储</button>
+  </p>
+  <p>如果本体保存数量太多，也许会超出浏览器限制的容量。在这种情况请点击“清空”并减少电影栏显示的朋友数量，然后重新保存。</p>
   </body>
 </html>
 
