@@ -1,0 +1,140 @@
+<html>
+  <head>
+    <title>My Test Extension Options</title>
+    <script src="jquery.js">
+    </script>
+    <style type="text/css">
+      #friendsdiv
+      {
+        border-style:dotted;
+        border-width:2px;
+      }
+      #friendsmodal
+      {
+        display:none;
+        position:fixed;
+        left:0;
+        top:0;
+        opacity: 0.9;
+        background:gray;
+        z-index:50;
+        width:100%;
+        height:100%;
+      }
+      #friendsspinner
+      {
+        display:none;
+        position:fixed;
+        background:transparent;
+        width:100%;
+        height:100%;
+        left: 50%;
+        top: 50%;
+        z-index:51;
+      }
+      .frienditem
+      {
+        float: left;
+        width: 150px;
+      }
+      #stopfriends
+      {
+        clear:both;
+      }
+    </style>
+  </head>
+<script type="text/javascript">
+
+// Saves options to localStorage.
+function save_options() {
+  var select = $("#color")[0];
+  var color = select.children[select.selectedIndex].value;
+  var username = $('#username')[0].value;
+  var apikey = $('#apikey')[0].value;
+
+  localStorage.clear();
+  localStorage['favorite_color'] = color;
+  localStorage[':username'] = username;
+  localStorage[':apikey'] = apikey;
+  chrome.extension.getBackgroundPage().location.reload();
+
+  // Update status to let user know options were saved.
+  var status = $("#status")[0];
+  status.innerHTML = "Options Saved.";
+  setTimeout(function() {
+    status.innerHTML = "";
+  }, 750);
+}
+
+// Restores select box state to saved value from localStorage.
+function restore_options() {
+  var favorite = localStorage["favorite_color"];
+  if (favorite) {
+    var select = $("#color")[0];
+    for (var i = 0; i < select.children.length; i++) {
+      var child = select.children[i];
+      if (child.value == favorite) {
+        child.selected = "true";
+        break;
+      }
+    }
+  }
+  $('#username')[0].value = localStorage.getItem(':username');
+  $('#apikey')[0].value = localStorage.getItem(':apikey');
+}
+
+$(function() {
+    console.log('run');
+    $('#loadButton').click(function() {
+      var uid = $('#username')[0].value;
+      var friends = $('#friendsdiv').empty();
+      var apply = function(e) {
+        var icon = '<a href="http://www.douban.com/people/'+ e.uid + 
+          '"><img src="' + e.link.icon + '"></img></a>';
+        var name = '<span>' + e.title + '</span>';
+        friends.append($('<div/>').addClass('friendItem').append(icon).append(name));
+      };
+      // show modal
+      $('#friendsmodal').show();
+      $('#friendsspinner').show();
+      var afterFetch = function() {
+        friends.append($('<p id="stopfriends"/>'));
+        $('#friendsmodal').hide();
+        $('#friendsspinner').hide();
+      }
+      chrome.extension.getBackgroundPage().loadFriends(uid, apply, afterFetch);
+    });
+
+    restore_options();
+  });
+
+</script>
+
+<body>
+  <div id="friendsmodal"></div>
+  <p>API Key: <input type="text" id="apikey" size="50"/></p>
+  <p>
+    Douban ID: <input type="text" id="username" />
+    <button id="loadButton">Load Contacts</button>
+  </p>
+  <div id="friendsspinner">
+    <img src="spinner.gif"></img>
+  </div>
+
+  <div id="friendsdiv">
+  </div>
+
+  Favorite Color:
+  <select id="color">
+    <option value="red">red</option>
+    <option value="green">green</option>
+    <option value="blue">blue</option>
+    <option value="yellow">yellow</option>
+  </select>
+
+  <br>
+  <button onclick="save_options()">Save</button>
+  <div id="status"/>
+  </body>
+</html>
+

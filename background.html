@@ -15,7 +15,7 @@
   </head>
   <body>
     <script>
-      DOUBAN.apikey = '01d953479d6477de058bf9d6d82d679a';
+      DOUBAN.apikey = window.localStorage.getItem(':apikey');//'01d953479d6477de058bf9d6d82d679a';
 
       function fetchAndApply(fetchFunc, params, parseFunc, applyFunc, next, force) {
         if (force == undefined) force = true;
@@ -89,7 +89,9 @@
         }
       }
 
-      function loadAllFriendMovies(uid, next) {
+      function loadAllFriendMovies(next) {
+        var uid = window.localStorage.getItem(':username');
+        if (!uid) return;
         if (next == undefined)
           next = $.noop;
         var friends = [];
@@ -175,7 +177,7 @@
       };
 
       saved_friends = loadSavedFriends();
-      loadAllFriendMovies('nivekz', function(){saved_friends = loadSavedFriends();});
+      loadAllFriendMovies(function(){saved_friends = loadSavedFriends();});
 
       // Wire up the listener.
       chrome.extension.onRequest.addListener(onRequest);

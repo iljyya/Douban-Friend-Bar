@@ -15,5 +15,6 @@
       "matches": ["http://movie.douban.com/subject/*"],
       "js" : ["jquery.js", "contentscript.js"]
     }
-  ]
+  ],
+  "options_page": "options.html"
 }
