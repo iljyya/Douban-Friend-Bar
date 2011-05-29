@@ -1,7 +1,7 @@
 {
-  "name": "Douban Friend Movie Bar",
+  "name": "豆瓣(Douban)好友电影评论栏",
   "version": "0.5.2",
-  "description": "Shows a bar on each movie page which friends have watched this movie, plus their ratings and reviews.",
+  "description": "在豆瓣电影网页上加入信息栏，显示哪些您关注的人看过当前电影，以及他们对电影的评价",
   "permissions": [
     "http://api.douban.com/*"
   ],
