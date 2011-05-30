@@ -49,7 +49,7 @@ function onText(data) {
       texte.css('padding-left', '5px').css('padding-right', '10px').css('cursor', 'pointer');
       texte.css('max-height', '48px').css('max-width', '150px').css('overflow', 'hidden');
 
-      var fblock = $('<div/>').append(imge).append(texte).css('float', 'left');
+      var fblock = $('<div/>').append(imge).append(texte).css('display', 'inline-block');
 
       texte.click(function() {
         if (texte.css('max-width') && texte.css('max-width') != '500px')
