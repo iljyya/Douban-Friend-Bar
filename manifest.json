@@ -1,6 +1,6 @@
 {
   "name": "豆瓣(Douban)好友电影评论栏",
-  "version": "0.5.3",
+  "version": "0.5.6",
   "description": "在豆瓣电影网页上加入信息栏，显示哪些您关注的人看过当前电影，以及他们对电影的评价",
   "permissions": [
     "unlimitedStorage",
