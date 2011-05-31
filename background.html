@@ -45,7 +45,7 @@
               fetchFunc(params);
             }
           } else {
-            setTimeout('h_timeout()', (DOUBAN.apikey?1000: 10000));
+            setTimeout('h_timeout()', (DOUBAN.apikey?1000: 15000));
             h_timeout = function() {
               next();
             }
@@ -212,7 +212,7 @@
         lastFriendMovieCall();
       };
 
-      localStorage[':version'] = '0.5.6';
+      localStorage[':version'] = '1.0';
       saved_friends = loadSavedFriends();
       //loadAllFriendMovies(function(){saved_friends = loadSavedFriends();});
       loadApikey();

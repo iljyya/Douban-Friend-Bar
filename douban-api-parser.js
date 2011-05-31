@@ -38,10 +38,14 @@ var parseId = function(source, target) {
 }
 var parseOpenSearch = function(source, target){
     parseElement(source, target, 'opensearch:startIndex', 'startIndex');
+    if (!target.startIndex)
+      parseElement(source, target, 'openSearch:startIndex', 'startIndex');
     target.startIndex = parseInt(target.startIndex)
-    parseElement(source, target, 'opensearch:itemPerPage', 'itemPerPage');
+    parseElement(source, target, 'opensearch:itemsPerPage', 'itemPerPage');
     target.itemPerPage = parseInt(target.itemPerPage)
     parseElement(source, target, 'opensearch:totalResults', 'totalResults');
+    if (!target.totalResults)
+      parseElement(source, target, 'openSearch:totalResults', 'totalResults');
     target.totalResults = parseInt(target.totalResults)
 }
 var parseFeed = function(results, feed, entryParser){
