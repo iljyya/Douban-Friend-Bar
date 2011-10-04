@@ -135,7 +135,7 @@ function checkKeyAndName()
 
 function updateStorageSize()
 {
-  $('#storageSize').html(localStorage.length);
+  $('#storageSize').html(localStorage.length > 4 ? localStorage.length - 4 : 0);
   setTimeout("updateStorageSize()", 3000);
 };
 
